@@ -1,0 +1,3 @@
+[submodule "thirdparty/LuxLog"]
+	path = thirdparty/LuxLog
+	url = https://github.com/lutianen/LuxLog.git
