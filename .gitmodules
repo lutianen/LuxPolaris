@@ -1,3 +1,6 @@
 [submodule "thirdparty/LuxLog"]
 	path = thirdparty/LuxLog
 	url = https://github.com/lutianen/LuxLog.git
+[submodule "thirdparty/googletest"]
+	path = thirdparty/googletest
+	url = https://github.com/google/googletest
