@@ -1,4 +1,3 @@
-
 #include "Logger.h"
 #include <gtest/gtest.h>
 
@@ -9,6 +8,7 @@ TEST(LuxPolaris, gest) { ASSERT_TRUE(1 == 1); }
 
 int
 main(int argc, char* argv[]) {
+
     LOG_INFO << "GoogleTest";
 
     testing::InitGoogleTest(&argc, argv);

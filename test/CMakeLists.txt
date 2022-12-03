@@ -1,3 +1,0 @@
-add_executable(LuxPolarisInitTest LuxPolaris_Init_test.cc)
-target_link_libraries(LuxPolarisInitTest LuxLog gtest pthread)
-

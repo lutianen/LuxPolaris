@@ -18,7 +18,7 @@ AccessModifierOffset: -4
 AlignTrailingComments: true
 
 # 每行字符的限制，0表示没有限制
-ColumnLimit: 120
+ColumnLimit: 80
 
 # 如果为true，则clang格式会为短名称空间添加缺少的名称空间结尾注释，并修复无效的现有名称结束注释
 FixNamespaceComments: true
