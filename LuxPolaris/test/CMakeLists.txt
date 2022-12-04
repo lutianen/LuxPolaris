@@ -31,3 +31,6 @@ target_link_libraries(TimerQueueTest LuxLog LuxPolaris gtest pthread)
 
 add_executable(EchoServerTest EchoServer_test.cc)
 target_link_libraries(EchoServerTest LuxLog LuxPolaris gtest pthread)
+
+add_executable(EchoClientTest EchoClient_test.cc)
+target_link_libraries(EchoClientTest LuxLog LuxPolaris gtest pthread)

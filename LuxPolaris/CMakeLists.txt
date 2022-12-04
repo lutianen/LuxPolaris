@@ -66,6 +66,8 @@ set (SRCS
     src/Poller.cc
     src/Sockets.cc
     src/TCPConnection.cc
+    src/Connector.cc
+    src/TCPClient.cc
     src/TCPServer.cc
     src/Timer.cc
     src/TimerQueue.cc
