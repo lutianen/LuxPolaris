@@ -6,9 +6,15 @@ LuxPolaris (Lux's Polaris) is a event-driven network library in Linux.
 
 - if use c++11, please don't use googletest.
   
-  The 1.12.x branch will be the last to support C++11. Future releases will require at least C++14.
+  The 1.12.x branch of googletest will be the last to support C++11. Future releases will require at least C++14.
   
   So we suggest that you use c++ >= 14;
+
+## ENVIRONMENTS
+
+- Linux Kernel >= 2.6.25
+- C++ >= 11
+- CMake >= 3.24
 
 ## I/O 复用
 
@@ -43,7 +49,15 @@ LuxPolaris (Lux's Polaris) is a event-driven network library in Linux.
   
   注意ET模式必须搭配非阻塞式socket使用。
 
-  随时使用`epoll_wait`获取有事件发生的fd: `int nfds = epoll_wait(epfd, events, maxevents, timeout);`, 其中events是一个epoll_event结构体数组，maxevents是可供返回的最大事件大小，一般是events的大小，timeout表示最大等待时间，设置为-1表示一直等待。
+  随时使用`epoll_wait`获取有事件发生的fd:
+
+  ```c
+    int nfds = epoll_wait(epfd, events, maxevents, timeout);
+    
+    // 其中events是一个epoll_event结构体数组
+    // maxevents是可供返回的最大事件大小，一般是events的大小
+    // timeout表示最大等待时间，设置为-1表示一直等待
+  ```
 
 ### Channel - epoll 高级用法
 
