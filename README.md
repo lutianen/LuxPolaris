@@ -15,6 +15,15 @@ LuxPolaris (Lux's Polaris) is a event-driven network library in Linux.
 - Linux Kernel >= 2.6.25
 - C++ >= 11
 - CMake >= 3.24
+- g++ >=8 / Clang >=9
+- clang-fromat
+
+## FORMAT CODES
+
+  ```bash
+  $ clang-format -style=file -i src/*.cc
+  $ clang-format -style=file -i src/include/*.h
+  ```
 
 ## I/O 复用
 
