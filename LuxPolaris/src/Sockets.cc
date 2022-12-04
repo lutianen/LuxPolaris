@@ -19,7 +19,6 @@
 
 #include <cstdio>
 
-#include "Endian.h"
 #include "Logger.h"
 #include "Types.h"
 
