@@ -1,62 +1,18 @@
----
-# We'll use defaults from the LLVM style, but with 4 columns indentation.
-BasedOnStyle: LLVM
-IndentWidth: 4
----
-Language: Cpp
+# We'll use defaults from the LLVM style, but with 4 columns indentation
 
-# Force pointers to the type for C++
+BasedOnStyle: Google # BasedOnStyle: LLVM / Google / GNU
+IndentWidth: 4
+
+Language: Cpp
 
 DerivePointerAlignment: false
 
 PointerAlignment: Left
 
-# 访问说明符(public、private等)的偏移
 AccessModifierOffset: -4
 
-# 对齐连续的尾随的注释
-AlignTrailingComments: true
-
-# 每行字符的限制，0表示没有限制
-ColumnLimit: 80
-
-# 如果为true，则clang格式会为短名称空间添加缺少的名称空间结尾注释，并修复无效的现有名称结束注释
 FixNamespaceComments: true
 
-# 命名空间的缩进: None, Inner(缩进嵌套的命名空间中的内容), All
-NamespaceIndentation: Inner
+NamespaceIndentation: All
 
-# 连续空行的最大数量
-MaxEmptyLinesToKeep: 5
-
-# 在赋值运算符之前添加空格
-SpaceBeforeAssignmentOperators: true
-
-# 允许排序#include
-SortIncludes: false
-
-# 总是在template声明后换行
 AlwaysBreakTemplateDeclarations: true
-
-# false表示函数实参要么都在同一行，要么都各自一行
-BinPackArguments: false
-
-# false表示所有形参要么都在同一行，要么都各自一行
-BinPackParameters: true
-
-# 构造函数的初始化列表要么都在同一行，要么都各自一行
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
-
-# 构造函数的初始化列表的缩进宽度
-ConstructorInitializerIndentWidth: 4
-
-# 允许短的函数放在同一行: None, InlineOnly(定义在类中), Empty(空函数), Inline(定义在类中，空函数), All
-AllowShortFunctionsOnASingleLine: All
-
-# 允许重新排版注释
-ReflowComments: true
-
-# 总是在返回类型后换行: None, All, TopLevel(顶级函数，不包括在类中的函数), 
-#   AllDefinitions(所有的定义，不包括声明), TopLevelDefinitions(所有的顶级函数的定义)
-AlwaysBreakAfterReturnType: All
----

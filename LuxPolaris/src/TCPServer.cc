@@ -8,14 +8,15 @@
  */
 
 #include "TCPServer.h"
-#include "Callbacks.h"
-#include "Logger.h"
-#include "Acceptor.h"
-#include "EventLoop.h"
-#include "Sockets.h"
-#include "EventLoopThreadPool.h"
 
 #include <cstdio>
+
+#include "Acceptor.h"
+#include "Callbacks.h"
+#include "EventLoop.h"
+#include "EventLoopThreadPool.h"
+#include "Logger.h"
+#include "Sockets.h"
 
 using namespace Lux;
 using namespace Lux::Polaris;
@@ -34,7 +35,6 @@ TCPServer::TCPServer(EventLoop* loop, const InetAddress& listenAddr,
         std::bind(&TCPServer::newConnection, this, _1, _2));
 }
 
-
 TCPServer::~TCPServer() {
     loop_->assertInLoopThread();
     LOG_TRACE << "TcpServer::~TcpServer [" << name_ << "] destructing";
@@ -47,15 +47,12 @@ TCPServer::~TCPServer() {
     }
 }
 
-void
-TCPServer::setThreadNum(int numThreads) {
+void TCPServer::setThreadNum(int numThreads) {
     assert(0 <= numThreads);
     threadPool_->setThreadNum(numThreads);
 }
 
-
-void
-TCPServer::start() {
+void TCPServer::start() {
     if (started_.getAndSet(1) == 0) {
         threadPool_->start(threadInitCallback_);
 
@@ -64,9 +61,7 @@ TCPServer::start() {
     }
 }
 
-
-void
-TCPServer::newConnection(int sockfd, const InetAddress& peerAddr) {
+void TCPServer::newConnection(int sockfd, const InetAddress& peerAddr) {
     loop_->assertInLoopThread();
     EventLoop* ioLoop = threadPool_->getNextLoop();
 
@@ -88,18 +83,16 @@ TCPServer::newConnection(int sockfd, const InetAddress& peerAddr) {
     conn->setMessageCallback(messageCallback_);
     conn->setWriteCompleteCallback(writeCompleteCallback_);
     conn->setCloseCallback(
-        std::bind(&TCPServer::removeConnection, this, _1)); // FIXME: unsafe
+        std::bind(&TCPServer::removeConnection, this, _1));  // FIXME: unsafe
     ioLoop->runInLoop(std::bind(&TCPConnection::connectEstablished, conn));
 }
 
-void
-TCPServer::removeConnection(const TCPConnectionPtr& conn) {
+void TCPServer::removeConnection(const TCPConnectionPtr& conn) {
     // FIXME: unsafe
     loop_->runInLoop(std::bind(&TCPServer::removeConnectionInLoop, this, conn));
 }
 
-void
-TCPServer::removeConnectionInLoop(const TCPConnectionPtr& conn) {
+void TCPServer::removeConnectionInLoop(const TCPConnectionPtr& conn) {
     loop_->assertInLoopThread();
     LOG_INFO << "TcpServer::removeConnectionInLoop [" << name_
              << "] - connection " << conn->name();

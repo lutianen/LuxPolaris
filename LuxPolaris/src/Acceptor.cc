@@ -8,21 +8,24 @@
  */
 
 #include "Acceptor.h"
-#include "Logger.h"
-#include "EventLoop.h"
-#include "InetAddress.h"
-#include "Sockets.h"
+
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <cassert>
 #include <cerrno>
-#include <fcntl.h>
 #include <functional>
-#include <unistd.h>
+
+#include "EventLoop.h"
+#include "InetAddress.h"
+#include "Logger.h"
+#include "Sockets.h"
 
 using namespace Lux;
 using namespace Lux::Polaris;
 
-Acceptor::Acceptor(EventLoop* loop, const InetAddress& listenAddr, bool reusePort)
+Acceptor::Acceptor(EventLoop* loop, const InetAddress& listenAddr,
+                   bool reusePort)
     : loop_(loop),
       acceptSocket_(sockets::createNonblockingOrDie(listenAddr.family())),
       acceptChannel_(loop, acceptSocket_.fd()),
@@ -43,17 +46,14 @@ Acceptor::~Acceptor() {
     ::close(idleFd_);
 }
 
-void
-Acceptor::listen() {
+void Acceptor::listen() {
     loop_->assertInLoopThread();
     listenning_ = true;
     acceptSocket_.listen();
     acceptChannel_.enableReading();
 }
 
-
-void
-Acceptor::handleRead() {
+void Acceptor::handleRead() {
     loop_->assertInLoopThread();
     InetAddress peerAddr;
 
@@ -69,13 +69,14 @@ Acceptor::handleRead() {
         } else {
             sockets::close(connfd);
         }
-    } else { // accept failed
+    } else {  // accept failed
         LOG_SYSERR << "in Acceptor::handleRead";
         // Read the section named "The special problem of
         // accept()ing when you can't" in libev's doc.
         // By Marc Lehmann, author of libev.
         if (errno == EMFILE) {
-            /* The per-process limit on the number of open file descriptors has been reached. */
+            /* The per-process limit on the number of open file descriptors has
+             * been reached. */
             ::close(idleFd_);
             idleFd_ = ::accept(acceptSocket_.fd(), nullptr, nullptr);
             ::close(idleFd_);

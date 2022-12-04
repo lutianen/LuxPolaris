@@ -8,13 +8,15 @@
  */
 
 #include "InetAddress.h"
-#include "Logger.h"
-#include "Endian.h"
-#include "Sockets.h"
 
 #include <netdb.h>
 #include <netinet/in.h>
-#include <cstddef>      // offsetof
+
+#include <cstddef>  // offsetof
+
+#include "Endian.h"
+#include "Logger.h"
+#include "Sockets.h"
 
 // INADDR_ANY use (type)value casting.
 #pragma GCC diagnostic ignored "-Wold-style-cast"
@@ -46,7 +48,8 @@ static const in_addr_t kInaddrLoopback = INADDR_LOOPBACK;
 using namespace Lux;
 using namespace Lux::Polaris;
 
-static_assert(sizeof(InetAddress) == sizeof(sockaddr_in6), "InetAddress is same size as sockaddr_in6");
+static_assert(sizeof(InetAddress) == sizeof(sockaddr_in6),
+              "InetAddress is same size as sockaddr_in6");
 static_assert(offsetof(sockaddr_in, sin_family) == 0, "sin_family offset 0");
 static_assert(offsetof(sockaddr_in6, sin6_family) == 0, "sin6_family offset 0");
 static_assert(offsetof(sockaddr_in, sin_port) == 2, "sin_port offset 2");
@@ -70,7 +73,6 @@ InetAddress::InetAddress(uint16_t port, bool loopbackOnly, bool ipv6) {
     }
 }
 
-
 InetAddress::InetAddress(Lux::StringArg ip, uint16_t port, bool ipv6) {
     if (ipv6) {
         memZero(&addr6_, sizeof addr6_);
@@ -81,45 +83,38 @@ InetAddress::InetAddress(Lux::StringArg ip, uint16_t port, bool ipv6) {
     }
 }
 
-
-std::string
-InetAddress::toIpPort() const {
+std::string InetAddress::toIpPort() const {
     char buf[64] = "";
     sockets::toIpPort(buf, sizeof buf, getSockAddr());
     return buf;
 }
 
-
-std::string
-InetAddress::toIp() const {
+std::string InetAddress::toIp() const {
     char buf[64] = "";
     sockets::toIp(buf, sizeof buf, getSockAddr());
     return buf;
 }
 
-
-uint32_t
-InetAddress::ipNetEndian() const {
+uint32_t InetAddress::ipNetEndian() const {
     assert(family() == AF_INET);
     return addr_.sin_addr.s_addr;
 }
 
-uint16_t
-InetAddress::toPort() const {
+uint16_t InetAddress::toPort() const {
     return sockets::networkToHost16(portNetEndian());
 }
 
 static __thread char t_resolveBuffer[64 * 1024];
 
-bool
-InetAddress::resolve(StringArg hostname, InetAddress* out) {
+bool InetAddress::resolve(StringArg hostname, InetAddress* out) {
     assert(out != NULL);
     struct hostent hent;
     struct hostent* he = NULL;
     int herrno = 0;
     memZero(&hent, sizeof(hent));
 
-    int ret = gethostbyname_r(hostname.c_str(), &hent, t_resolveBuffer, sizeof t_resolveBuffer, &he, &herrno);
+    int ret = gethostbyname_r(hostname.c_str(), &hent, t_resolveBuffer,
+                              sizeof t_resolveBuffer, &he, &herrno);
     if (ret == 0 && he != NULL) {
         assert(he->h_addrtype == AF_INET && he->h_length == sizeof(uint32_t));
         out->addr_.sin_addr = *reinterpret_cast<struct in_addr*>(he->h_addr);
@@ -132,9 +127,7 @@ InetAddress::resolve(StringArg hostname, InetAddress* out) {
     }
 }
 
-
-void
-InetAddress::setScopeId(uint32_t scope_id) {
+void InetAddress::setScopeId(uint32_t scope_id) {
     if (family() == AF_INET6) {
         addr6_.sin6_scope_id = scope_id;
     }

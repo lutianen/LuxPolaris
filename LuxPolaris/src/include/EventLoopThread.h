@@ -9,39 +9,35 @@
 
 #pragma once
 
-
-
 #include "Condition.h"
 #include "Mutex.h"
 #include "Thread.h"
 
 namespace Lux {
-namespace Polaris {
-    class EventLoop;
+    namespace Polaris {
+        class EventLoop;
 
-    class EventLoopThread : noncopyable {
-    public:
-        using ThreadInitCallback = std::function<void(EventLoop* loop)>;
+        class EventLoopThread : noncopyable {
+        public:
+            using ThreadInitCallback = std::function<void(EventLoop* loop)>;
 
-    private:
-        EventLoop* loop_ GUARDED_BY(mutex_);
-        bool exiting_;
-        Thread thread_;
-        MutexLock mutex_;
-        Condition cond_ GUARDED_BY(mutex_);
-        ThreadInitCallback callback_;
+        private:
+            EventLoop* loop_ GUARDED_BY(mutex_);
+            bool exiting_;
+            Thread thread_;
+            MutexLock mutex_;
+            Condition cond_ GUARDED_BY(mutex_);
+            ThreadInitCallback callback_;
 
-    private:
-        void
-        threadFunc();
+        private:
+            void threadFunc();
 
-    public:
-        EventLoopThread(const ThreadInitCallback& cb = ThreadInitCallback(),
-                        const std::string& name = std::string());
-        ~EventLoopThread();
+        public:
+            EventLoopThread(const ThreadInitCallback& cb = ThreadInitCallback(),
+                            const std::string& name = std::string());
+            ~EventLoopThread();
 
-        EventLoop*
-        startLoop();
-    };
-} // namespace Polaris
-} // namespace Lux
+            EventLoop* startLoop();
+        };
+    }  // namespace Polaris
+}  // namespace Lux

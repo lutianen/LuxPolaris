@@ -8,11 +8,11 @@
  */
 
 #include "EventLoopThread.h"
+
 #include "EventLoop.h"
 
 using namespace Lux;
 using namespace Lux::Polaris;
-
 
 EventLoopThread::EventLoopThread(const ThreadInitCallback& cb,
                                  const std::string& name)
@@ -22,7 +22,6 @@ EventLoopThread::EventLoopThread(const ThreadInitCallback& cb,
       mutex_(),
       cond_(mutex_),
       callback_(cb) {}
-
 
 EventLoopThread::~EventLoopThread() {
     exiting_ = true;
@@ -37,10 +36,7 @@ EventLoopThread::~EventLoopThread() {
     }
 }
 
-
-
-EventLoop*
-EventLoopThread::startLoop() {
+EventLoop* EventLoopThread::startLoop() {
     assert(!thread_.started());
     thread_.start();
 
@@ -57,10 +53,7 @@ EventLoopThread::startLoop() {
     return loop;
 }
 
-
-
-void
-EventLoopThread::threadFunc() {
+void EventLoopThread::threadFunc() {
     EventLoop loop;
     if (callback_) {
         callback_(&loop);

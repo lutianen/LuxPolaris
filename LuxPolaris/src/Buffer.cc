@@ -1,19 +1,18 @@
 /**
  * @file Buffer.cc
- * @brief 
- * 
+ * @brief
+ *
  * @version 1.0
  * @author Tian-en Lu (tianenlu957@gmail.com)
  * @date 2022-11
  */
 
-
 #include "Buffer.h"
-#include "Sockets.h"
 
 #include <errno.h>
 #include <sys/uio.h>
 
+#include "Sockets.h"
 
 using namespace Lux;
 using namespace Lux::Polaris;
@@ -23,14 +22,12 @@ const char Buffer::kCRLF[] = "\r\n";
 const size_t Buffer::kCheapPrepend;
 const size_t Buffer::kInitialSize;
 
-
-//FIXME ???
+// FIXME ???
 /// @brief
-/// @param fd 
-/// @param savedErrno 
-/// @return 
-ssize_t
-Buffer::readFd(int fd, int* savedErrno) {
+/// @param fd
+/// @param savedErrno
+/// @return
+ssize_t Buffer::readFd(int fd, int* savedErrno) {
     // saved an ioctl()/FIONREAD call to tell how much to read
     char extrabuf[65536];
 
@@ -43,7 +40,7 @@ Buffer::readFd(int fd, int* savedErrno) {
     vec[1].iov_len = sizeof extrabuf;
 
     /// When there is enough space in this buff, don't read into extrabuf
-    /// When extrabuf is used, we read 128k-1 bytes at most. 
+    /// When extrabuf is used, we read 128k-1 bytes at most.
     const int iovcnt = (writeable < sizeof extrabuf) ? 2 : 1;
     const ssize_t n = sockets::readv(fd, vec, iovcnt);
     if (n < 0) {
@@ -55,6 +52,5 @@ Buffer::readFd(int fd, int* savedErrno) {
         append(extrabuf, static_cast<size_t>(n) - writeable);
     }
 
-    return n;    
+    return n;
 }
-

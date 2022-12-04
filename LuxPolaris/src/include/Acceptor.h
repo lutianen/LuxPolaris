@@ -11,59 +11,55 @@
 
 #pragma once
 
-
 #include "Channel.h"
 #include "Sockets.h"
 
 namespace Lux {
-namespace Polaris {
+    namespace Polaris {
 
-    class EventLoop;
-    class InetAddress;
+        class EventLoop;
+        class InetAddress;
 
-    /// Acceptor of incoming TCP connections.
-    /// 用于接受TCP连接,它是 TcpServer 的成员,生命期由后者控制
-    class Acceptor : private noncopyable {
-    public:
-        using NewConnectionCallback = std::function<void(int sockfd, const InetAddress&)>;
+        /// Acceptor of incoming TCP connections.
+        /// 用于接受TCP连接,它是 TcpServer 的成员,生命期由后者控制
+        class Acceptor : private noncopyable {
+        public:
+            using NewConnectionCallback =
+                std::function<void(int sockfd, const InetAddress&)>;
 
-    private:
-        // Reactor 模式中的 main-Reactor
-        EventLoop* loop_;
-        //
-        Socket acceptSocket_;
-        // 负责分发到 epoll, 该 `Channel` 的事件处理函数 ``,
-        // 调用 `Acceptor` 中的接受新连接函数来新建一个 TCP 连接
-        Channel acceptChannel_;
-        /**
-         * @brief 新建连接回调函数 * 在 `TcpServer` 类中实现 *
-         * FIXME Acceptor的Channel使用了ET模式，事实上使用LT模式更合适
-         * @param connfd int
-         * @param peerAddr InetAddress
-         */
-        NewConnectionCallback newConnectionCallback_;
+        private:
+            // Reactor 模式中的 main-Reactor
+            EventLoop* loop_;
+            //
+            Socket acceptSocket_;
+            // 负责分发到 epoll, 该 `Channel` 的事件处理函数 ``,
+            // 调用 `Acceptor` 中的接受新连接函数来新建一个 TCP 连接
+            Channel acceptChannel_;
+            /**
+             * @brief 新建连接回调函数 * 在 `TcpServer` 类中实现 *
+             * FIXME Acceptor的Channel使用了ET模式，事实上使用LT模式更合适
+             * @param connfd int
+             * @param peerAddr InetAddress
+             */
+            NewConnectionCallback newConnectionCallback_;
 
-        bool listenning_;
-        int idleFd_;
+            bool listenning_;
+            int idleFd_;
 
-        void
-        handleRead();
+            void handleRead();
 
-    public:
-        Acceptor(EventLoop* loop, const InetAddress& listenAddr, bool reuseport);
-        ~Acceptor();
+        public:
+            Acceptor(EventLoop* loop, const InetAddress& listenAddr,
+                     bool reuseport);
+            ~Acceptor();
 
-        inline void
-        setNewConnectionCallback(const NewConnectionCallback& cb) {
-            newConnectionCallback_ = cb;
-        }
+            inline void setNewConnectionCallback(
+                const NewConnectionCallback& cb) {
+                newConnectionCallback_ = cb;
+            }
 
-        inline bool
-        listenning() const {
-            return listenning_;
-        }
-        void
-        listen();
-    };
-} // namespace Polaris
-} // namespace Lux
+            inline bool listenning() const { return listenning_; }
+            void listen();
+        };
+    }  // namespace Polaris
+}  // namespace Lux

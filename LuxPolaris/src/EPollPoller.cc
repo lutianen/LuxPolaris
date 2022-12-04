@@ -9,21 +9,19 @@
 
 #include "EPollPoller.h"
 
-#include "Logger.h"
-#include "Channel.h"
-
-
-#include <cassert>
-#include <cerrno>
 #include <poll.h>
 #include <sys/epoll.h>
 #include <unistd.h>
+
+#include <cassert>
+#include <cerrno>
 #include <vector>
 
+#include "Channel.h"
+#include "Logger.h"
 
 using namespace Lux;
 using namespace Lux::Polaris;
-
 
 // On Linux, the constants of poll(2) and epoll(4) are expected to be the same.
 static_assert(EPOLLIN == POLLIN, "epoll uses same flag values as poll");
@@ -34,39 +32,39 @@ static_assert(EPOLLERR == POLLERR, "epoll uses same flag values as poll");
 static_assert(EPOLLHUP == POLLHUP, "epoll uses same flag values as poll");
 
 namespace {
-const int kNew = -1;
-const int kAdded = 1;
-const int kDeleted = 2;
-} // namespace
-
+    const int kNew = -1;
+    const int kAdded = 1;
+    const int kDeleted = 2;
+}  // namespace
 
 /**
  * @brief Set eventLoop and Create epoll
  */
 EPollPoller::EPollPoller(EventLoop* loop)
-    : Poller(loop), epollfd_(::epoll_create1(EPOLL_CLOEXEC)), events_(kInitEventListSize) {
+    : Poller(loop),
+      epollfd_(::epoll_create1(EPOLL_CLOEXEC)),
+      events_(kInitEventListSize) {
     if (epollfd_ < 0) {
         LOG_SYSFATAL << "EPollPoller::EPollPoller";
     }
 }
 
 /**
- * @brief Close epollfd 
+ * @brief Close epollfd
  */
 EPollPoller::~EPollPoller() { ::close(epollfd_); }
 
-
 /**
  * @brief Call `epoll_wait`
- * 
+ *
  * @param timeoutMs 最大等待时间，设置为-1表示一直等待
- * @param activeChannels 
- * @return Timestamp 
+ * @param activeChannels
+ * @return Timestamp
  */
-Timestamp
-EPollPoller::poll(int timeoutMs, ChannelList* activeChannels) {
+Timestamp EPollPoller::poll(int timeoutMs, ChannelList* activeChannels) {
     LOG_TRACE << "fd total count " << channels_.size();
-    int numEvents = ::epoll_wait(epollfd_, &*events_.begin(), static_cast<int>(events_.size()), timeoutMs);
+    int numEvents = ::epoll_wait(epollfd_, &*events_.begin(),
+                                 static_cast<int>(events_.size()), timeoutMs);
     int savedErrno = errno;
     Timestamp now(Timestamp::now());
 
@@ -90,36 +88,37 @@ EPollPoller::poll(int timeoutMs, ChannelList* activeChannels) {
     return now;
 }
 
-
-
-void
-EPollPoller::fillActiveChannels(int numEvents, ChannelList* activeChannels) const {
+void EPollPoller::fillActiveChannels(int numEvents,
+                                     ChannelList* activeChannels) const {
     assert(implicit_cast<size_t>(numEvents) <= events_.size());
     for (int i = 0; i < numEvents; ++i) {
-        Channel* channel = static_cast<Channel*>(events_[static_cast<std::vector<EventList>::size_type>(i)].data.ptr);
+        Channel* channel = static_cast<Channel*>(
+            events_[static_cast<std::vector<EventList>::size_type>(i)]
+                .data.ptr);
 #ifndef NDEBUG
         int fd = channel->fd();
         ChannelMap::const_iterator it = channels_.find(fd);
         assert(it != channels_.end());
         assert(it->second == channel);
 #endif
-        channel->set_revents(static_cast<int>(events_[static_cast<std::vector<EventList>::size_type>(i)].events));
+        channel->set_revents(static_cast<int>(
+            events_[static_cast<std::vector<EventList>::size_type>(i)].events));
         activeChannels->push_back(channel);
     }
 }
 
-void
-EPollPoller::updateChannel(Channel* channel) {
+void EPollPoller::updateChannel(Channel* channel) {
     Poller::assertInLoopThread();
     const int index = channel->index();
-    LOG_TRACE << "fd = " << channel->fd() << " events = " << channel->events() << " index = " << index;
+    LOG_TRACE << "fd = " << channel->fd() << " events = " << channel->events()
+              << " index = " << index;
     if (index == kNew || index == kDeleted) {
         // a new one, add with EPOLL_CTL_ADD
         int fd = channel->fd();
         if (index == kNew) {
             assert(channels_.find(fd) == channels_.end());
             channels_[fd] = channel;
-        } else // index == kDeleted
+        } else  // index == kDeleted
         {
             assert(channels_.find(fd) != channels_.end());
             assert(channels_[fd] == channel);
@@ -143,9 +142,7 @@ EPollPoller::updateChannel(Channel* channel) {
     }
 }
 
-
-void
-EPollPoller::removeChannel(Channel* channel) {
+void EPollPoller::removeChannel(Channel* channel) {
     Poller::assertInLoopThread();
     int fd = channel->fd();
     LOG_TRACE << "fd = " << fd;
@@ -164,41 +161,40 @@ EPollPoller::removeChannel(Channel* channel) {
     channel->set_index(kNew);
 }
 
-
-void
-EPollPoller::update(int operation, Channel* channel) {
+void EPollPoller::update(int operation, Channel* channel) {
     struct epoll_event event;
     memZero(&event, sizeof(event));
     event.events = static_cast<uint32_t>(channel->events());
     event.data.ptr = channel;
     int fd = channel->fd();
-    LOG_TRACE << "epoll_ctl op = " << operationToString(operation) << " fd = " << fd << " event = { "
-              << channel->eventsToString() << " }";
+    LOG_TRACE << "epoll_ctl op = " << operationToString(operation)
+              << " fd = " << fd << " event = { " << channel->eventsToString()
+              << " }";
 
     /* NOTE ::epoll_ctl */
     if (::epoll_ctl(epollfd_, operation, fd, &event) < 0) {
         if (operation == EPOLL_CTL_DEL) {
-            LOG_SYSERR << "epoll_ctl op =" << operationToString(operation) << " fd =" << fd;
+            LOG_SYSERR << "epoll_ctl op =" << operationToString(operation)
+                       << " fd =" << fd;
         } else {
-            LOG_SYSFATAL << "epoll_ctl op =" << operationToString(operation) << " fd =" << fd;
+            LOG_SYSFATAL << "epoll_ctl op =" << operationToString(operation)
+                         << " fd =" << fd;
         }
     }
 }
 
-
 /// @brief Get the operation
 /// @return const char *
-const char*
-EPollPoller::operationToString(int op) {
+const char* EPollPoller::operationToString(int op) {
     switch (op) {
-    case EPOLL_CTL_ADD:
-        return "ADD";
-    case EPOLL_CTL_DEL:
-        return "DEL";
-    case EPOLL_CTL_MOD:
-        return "MOD";
-    default:
-        assert(false && "ERROR op");
-        return "Unknown Operation";
+        case EPOLL_CTL_ADD:
+            return "ADD";
+        case EPOLL_CTL_DEL:
+            return "DEL";
+        case EPOLL_CTL_MOD:
+            return "MOD";
+        default:
+            assert(false && "ERROR op");
+            return "Unknown Operation";
     }
 }

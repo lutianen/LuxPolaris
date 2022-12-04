@@ -7,35 +7,34 @@
  * @date 2022-12
  */
 
-
-
 #pragma once
 
-#include "Copyable.h"
 #include <cstdint>
 
+#include "Copyable.h"
+
 namespace Lux {
-namespace Polaris {
+    namespace Polaris {
 
-    /// Forward declare
-    class Timer;
+        /// Forward declare
+        class Timer;
 
+        /// @brief An opaque identifier, for canceling Timer.
+        class TimerId : public Lux::copyable {
+        public:
+            TimerId() : timer_(nullptr), sequence_(0) {}
 
-    /// @brief An opaque identifier, for canceling Timer.
-    class TimerId : public Lux::copyable {
-    public:
-        TimerId() : timer_(nullptr), sequence_(0) {}
+            TimerId(Timer* timer, int64_t seq)
+                : timer_(timer), sequence_(seq) {}
 
-        TimerId(Timer* timer, int64_t seq) : timer_(timer), sequence_(seq) {}
+            // default copy-ctor, dtor and assignment are okay
 
-        // default copy-ctor, dtor and assignment are okay
+            friend class TimerQueue;
 
-        friend class TimerQueue;
+        private:
+            Timer* timer_;
+            int64_t sequence_;
+        };
 
-    private:
-        Timer* timer_;
-        int64_t sequence_;
-    };
-
-} // namespace Polaris
-} // namespace Lux
+    }  // namespace Polaris
+}  // namespace Lux

@@ -8,11 +8,12 @@
  */
 
 #include "EventLoopThreadPool.h"
+
+#include <vector>
+
 #include "EventLoop.h"
 #include "EventLoopThread.h"
 #include "Logger.h"
-#include <vector>
-
 
 using namespace Lux;
 using namespace Lux::Polaris;
@@ -24,16 +25,14 @@ EventLoopThreadPool::EventLoopThreadPool(EventLoop* baseLoop,
       started_(false),
       numThreads_(0),
       next_(0) {
-        LOG_DEBUG << "thrs: " << numThreads_;
-      }
+    LOG_DEBUG << "thrs: " << numThreads_;
+}
 
 EventLoopThreadPool::~EventLoopThreadPool() {
     // Don't delete loop, it's stack variable
 }
 
-
-void
-EventLoopThreadPool::start(const ThreadInitCallback& cb) {
+void EventLoopThreadPool::start(const ThreadInitCallback& cb) {
     assert(!started_);
     baseLoop_->assertInLoopThread();
 
@@ -47,13 +46,10 @@ EventLoopThreadPool::start(const ThreadInitCallback& cb) {
         loops_.push_back(t->startLoop());
     }
 
-    if (numThreads_ == 0 && cb != nullptr)
-        cb(baseLoop_);
+    if (numThreads_ == 0 && cb != nullptr) cb(baseLoop_);
 }
 
-
-EventLoop*
-EventLoopThreadPool::getNextLoop() {
+EventLoop* EventLoopThreadPool::getNextLoop() {
     baseLoop_->assertInLoopThread();
     assert(started_);
     EventLoop* loop = baseLoop_;
@@ -69,9 +65,7 @@ EventLoopThreadPool::getNextLoop() {
     return loop;
 }
 
-
-EventLoop*
-EventLoopThreadPool::getLoopForHash(size_t hashCode) {
+EventLoop* EventLoopThreadPool::getLoopForHash(size_t hashCode) {
     baseLoop_->assertInLoopThread();
     EventLoop* loop = baseLoop_;
 
@@ -81,8 +75,7 @@ EventLoopThreadPool::getLoopForHash(size_t hashCode) {
     return loop;
 }
 
-std::vector<EventLoop*>
-EventLoopThreadPool::getAllLoops() {
+std::vector<EventLoop*> EventLoopThreadPool::getAllLoops() {
     baseLoop_->assertInLoopThread();
     assert(started_);
     if (loops_.empty()) {

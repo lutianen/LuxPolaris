@@ -13,112 +13,101 @@
 
 #include "TimerQueue.h"
 
-
-
-#include "Logger.h"
-#include "EventLoop.h"
-#include "Timer.h"
-#include "TimerId.h"
-
 #include <sys/timerfd.h>
 #include <unistd.h>
 
+#include "EventLoop.h"
+#include "Logger.h"
+#include "Timer.h"
+#include "TimerId.h"
+
 namespace Lux {
-namespace Polaris {
-    namespace detail {
+    namespace Polaris {
+        namespace detail {
 
-        /**
-         * @brief 生成定时器对象，并返回与之相关联的定时器文件描述符
-         * @note 1. `CLOCK_MONOTONIC` -
-         * 以绝对时间为准，获取的时间为系统重启到现在的时间，更改系统时间对齐没有影响
-         *       2. `TFD_NONBLOCK | TFD_CLOEXEC` - 非阻塞、
-         * @return int
-         */
-        int
-        createTimerfd() {
-            int timerfd =
-                ::timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-            if (timerfd < 0) {
-                LOG_SYSFATAL << "Failed in timerfd_create";
+            /**
+             * @brief 生成定时器对象，并返回与之相关联的定时器文件描述符
+             * @note 1. `CLOCK_MONOTONIC` -
+             * 以绝对时间为准，获取的时间为系统重启到现在的时间，更改系统时间对齐没有影响
+             *       2. `TFD_NONBLOCK | TFD_CLOEXEC` - 非阻塞、
+             * @return int
+             */
+            int createTimerfd() {
+                int timerfd = ::timerfd_create(CLOCK_MONOTONIC,
+                                               TFD_NONBLOCK | TFD_CLOEXEC);
+                if (timerfd < 0) {
+                    LOG_SYSFATAL << "Failed in timerfd_create";
+                }
+                return timerfd;
             }
-            return timerfd;
-        }
 
-        struct timespec
-        howMuchTimeFromNow(Timestamp when) {
-            int64_t microseconds = when.microSecondsSinceEpoch() -
-                                   Timestamp::now().microSecondsSinceEpoch();
-            if (microseconds < 100) {
-                microseconds = 100;
+            struct timespec howMuchTimeFromNow(Timestamp when) {
+                int64_t microseconds =
+                    when.microSecondsSinceEpoch() -
+                    Timestamp::now().microSecondsSinceEpoch();
+                if (microseconds < 100) {
+                    microseconds = 100;
+                }
+                struct timespec ts;
+                ts.tv_sec = static_cast<time_t>(
+                    microseconds / Timestamp::kMicroSecondsPerSecond);
+                ts.tv_nsec = static_cast<long>(
+                    (microseconds % Timestamp::kMicroSecondsPerSecond) * 1000);
+                return ts;
             }
-            struct timespec ts;
-            ts.tv_sec = static_cast<time_t>(microseconds /
-                                            Timestamp::kMicroSecondsPerSecond);
-            ts.tv_nsec = static_cast<long>(
-                (microseconds % Timestamp::kMicroSecondsPerSecond) * 1000);
-            return ts;
-        }
 
-        /**
-         * @brief 读定时器文件描述符
-         *
-         * @param timerfd
-         * @param now
-         */
-        void
-        readTimerfd(int timerfd, Timestamp now) {
-            uint64_t howmany;
-            ssize_t n = ::read(timerfd, &howmany, sizeof howmany);
-            LOG_TRACE << "TimerQueue::handleRead() " << howmany << " at "
-                      << now.toString();
-            
-            if (n != sizeof(howmany)) {
-                LOG_ERROR << "TimerQueue::handleRead() reads " << n
-                          << " bytes instead of 8";
+            /**
+             * @brief 读定时器文件描述符
+             *
+             * @param timerfd
+             * @param now
+             */
+            void readTimerfd(int timerfd, Timestamp now) {
+                uint64_t howmany;
+                ssize_t n = ::read(timerfd, &howmany, sizeof howmany);
+                LOG_TRACE << "TimerQueue::handleRead() " << howmany << " at "
+                          << now.toString();
+
+                if (n != sizeof(howmany)) {
+                    LOG_ERROR << "TimerQueue::handleRead() reads " << n
+                              << " bytes instead of 8";
+                }
             }
-        }
 
+            /**
+             * @brief 重设定时器
+             *
+             * @param timerfd 定时器相关文件描述符
+             * @param expiration 定时器相对超时时间
+             */
+            void resetTimerfd(int timerfd, Timestamp expiration) {
+                // wake up loop by timerfd_settime()
 
-        /**
-         * @brief 重设定时器
-         *
-         * @param timerfd 定时器相关文件描述符
-         * @param expiration 定时器相对超时时间
-         */
-        void
-        resetTimerfd(int timerfd, Timestamp expiration) {
-            // wake up loop by timerfd_settime()
+                // 当new_value.it_value非0时，用于设置定时器第一次超时时间,为0代表停止定时器
+                // new_value.it_interval:表示第一次超时后下一次超时的时间，为0代表定时器只超时一次
+                // old_value: 如果不为NULL，则用来存储当前时间。
+                struct itimerspec newValue;
+                struct itimerspec oldValue;
+                memZero(&newValue, sizeof newValue);
+                memZero(&oldValue, sizeof oldValue);
 
-            // 当new_value.it_value非0时，用于设置定时器第一次超时时间,为0代表停止定时器
-            // new_value.it_interval:表示第一次超时后下一次超时的时间，为0代表定时器只超时一次
-            // old_value: 如果不为NULL，则用来存储当前时间。
-            struct itimerspec newValue;
-            struct itimerspec oldValue;
-            memZero(&newValue, sizeof newValue);
-            memZero(&oldValue, sizeof oldValue);
+                // - 非0时，用于设置定时器第一次超时时间,为0代表停止定时器
+                newValue.it_value = howMuchTimeFromNow(expiration);
 
-            // - 非0时，用于设置定时器第一次超时时间,为0代表停止定时器
-            newValue.it_value = howMuchTimeFromNow(expiration);
-
-            // flags : 0 / TFD_TIMER_ABSTIME -
-            // 0代表相对时间，即相对于当前时间多少，后者是绝对时间。
-            int ret = ::timerfd_settime(timerfd, 0, &newValue, &oldValue);
-            if (ret) {
-                LOG_SYSERR << "timerfd_settime()";
+                // flags : 0 / TFD_TIMER_ABSTIME -
+                // 0代表相对时间，即相对于当前时间多少，后者是绝对时间。
+                int ret = ::timerfd_settime(timerfd, 0, &newValue, &oldValue);
+                if (ret) {
+                    LOG_SYSERR << "timerfd_settime()";
+                }
             }
-        }
-    } // namespace detail
-} // namespace Polaris
-} // namespace Lux
-
-
-
-
+        }  // namespace detail
+    }      // namespace Polaris
+}  // namespace Lux
 
 using namespace Lux;
 using namespace Lux::Polaris;
 using namespace Lux::Polaris::detail;
-
 
 TimerQueue::TimerQueue(EventLoop* loop)
     : loop_(loop),
@@ -141,22 +130,18 @@ TimerQueue::~TimerQueue() {
     }
 }
 
-
-TimerId
-TimerQueue::addTimer(TimerCallback cb, Timestamp when, double interval) {
+TimerId TimerQueue::addTimer(TimerCallback cb, Timestamp when,
+                             double interval) {
     Timer* timer = new Timer(std::move(cb), when, interval);
     loop_->runInLoop(std::bind(&TimerQueue::addTimerInLoop, this, timer));
     return TimerId(timer, timer->sequence());
 }
 
-
-void
-TimerQueue::cancel(TimerId timerId) {
+void TimerQueue::cancel(TimerId timerId) {
     loop_->runInLoop(std::bind(&TimerQueue::cancelInLoop, this, timerId));
 }
 
-void
-TimerQueue::addTimerInLoop(Timer* timer) {
+void TimerQueue::addTimerInLoop(Timer* timer) {
     loop_->assertInLoopThread();
     bool earliestChanged = insert(timer);
 
@@ -165,8 +150,7 @@ TimerQueue::addTimerInLoop(Timer* timer) {
     }
 }
 
-void
-TimerQueue::cancelInLoop(TimerId timerId) {
+void TimerQueue::cancelInLoop(TimerId timerId) {
     loop_->assertInLoopThread();
     assert(timers_.size() == activeTimers_.size());
     ActiveTimer timer(timerId.timer_, timerId.sequence_);
@@ -175,7 +159,7 @@ TimerQueue::cancelInLoop(TimerId timerId) {
         size_t n = timers_.erase(Entry(it->first->expiration(), it->first));
         assert(n == 1);
         (void)n;
-        delete it->first; // FIXME: no delete please
+        delete it->first;  // FIXME: no delete please
         activeTimers_.erase(it);
     } else if (callingExpiredTimers_) {
         cancelingTimers_.insert(timer);
@@ -183,8 +167,7 @@ TimerQueue::cancelInLoop(TimerId timerId) {
     assert(timers_.size() == activeTimers_.size());
 }
 
-void
-TimerQueue::handleRead() {
+void TimerQueue::handleRead() {
     loop_->assertInLoopThread();
     Timestamp now(Timestamp::now());
     readTimerfd(timerfd_, now);
@@ -202,8 +185,7 @@ TimerQueue::handleRead() {
     reset(expired, now);
 }
 
-std::vector<TimerQueue::Entry>
-TimerQueue::getExpired(Timestamp now) {
+std::vector<TimerQueue::Entry> TimerQueue::getExpired(Timestamp now) {
     assert(timers_.size() == activeTimers_.size());
     std::vector<Entry> expired;
 
@@ -225,8 +207,7 @@ TimerQueue::getExpired(Timestamp now) {
     return expired;
 }
 
-void
-TimerQueue::reset(const std::vector<Entry>& expired, Timestamp now) {
+void TimerQueue::reset(const std::vector<Entry>& expired, Timestamp now) {
     Timestamp nextExpire;
 
     for (const Entry& it : expired) {
@@ -237,7 +218,7 @@ TimerQueue::reset(const std::vector<Entry>& expired, Timestamp now) {
             insert(it.second);
         } else {
             // FIXME move to a free list
-            delete it.second; // FIXME: no delete please
+            delete it.second;  // FIXME: no delete please
         }
     }
 
@@ -250,8 +231,7 @@ TimerQueue::reset(const std::vector<Entry>& expired, Timestamp now) {
     }
 }
 
-bool
-TimerQueue::insert(Timer* timer) {
+bool TimerQueue::insert(Timer* timer) {
     loop_->assertInLoopThread();
     assert(timers_.size() == activeTimers_.size());
     bool earliestChanged = false;

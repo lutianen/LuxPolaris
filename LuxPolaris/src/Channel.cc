@@ -8,11 +8,13 @@
  */
 
 #include "Channel.h"
-#include "Logger.h"
-#include "EventLoop.h"
+
+#include <poll.h>
 
 #include <sstream>
-#include <poll.h>
+
+#include "EventLoop.h"
+#include "Logger.h"
 
 using namespace Lux;
 using namespace Lux::Polaris;
@@ -32,7 +34,6 @@ Channel::Channel(EventLoop* loop, int fd)
       eventHandling_(false),
       addedToLoop_(false) {}
 
-
 Channel::~Channel() {
     assert(!eventHandling_);
     assert(!addedToLoop_);
@@ -41,39 +42,32 @@ Channel::~Channel() {
     }
 }
 
-void
-Channel::tie(const std::shared_ptr<void>& obj) {
+void Channel::tie(const std::shared_ptr<void>& obj) {
     tie_ = obj;
     tied_ = true;
 }
 
-
 /**
  * @brief Update Channel
  */
-void
-Channel::update() {
+void Channel::update() {
     addedToLoop_ = true;
     loop_->updateChannel(this);
 }
 
-
 /**
  * @brief Remove Channel
  */
-void
-Channel::remove() {
+void Channel::remove() {
     assert(isNoneEvent());
     addedToLoop_ = false;
     loop_->removeChannel(this);
 }
 
-
 /**
  * @brief Handle Event
  */
-void
-Channel::handleEvent(Timestamp receiveTime) {
+void Channel::handleEvent(Timestamp receiveTime) {
     std::shared_ptr<void> guard;
     if (tied_) {
         guard = tie_.lock();
@@ -85,16 +79,14 @@ Channel::handleEvent(Timestamp receiveTime) {
     }
 }
 
-void
-Channel::handleEventWithGuard(Timestamp receiveTime) {
+void Channel::handleEventWithGuard(Timestamp receiveTime) {
     eventHandling_ = true;
     LOG_TRACE << reventsToString();
     if ((revents_ & POLLHUP) && !(revents_ & POLLIN)) {
         if (logHup_) {
             LOG_WARN << "fd = " << fd_ << " Channel::handle_event() POLLHUP";
         }
-        if (closeCallback_)
-            closeCallback_();
+        if (closeCallback_) closeCallback_();
     }
 
     if (revents_ & POLLNVAL) {
@@ -102,53 +94,37 @@ Channel::handleEventWithGuard(Timestamp receiveTime) {
     }
 
     if (revents_ & (POLLERR | POLLNVAL)) {
-        if (errorCallback_)
-            errorCallback_();
+        if (errorCallback_) errorCallback_();
     }
     if (revents_ & (POLLIN | POLLPRI | POLLRDHUP)) {
-        if (readCallback_)
-            readCallback_(receiveTime);
+        if (readCallback_) readCallback_(receiveTime);
     }
     if (revents_ & POLLOUT) {
-        if (writeCallback_)
-            writeCallback_();
+        if (writeCallback_) writeCallback_();
     }
     eventHandling_ = false;
 }
 
-string
-Channel::reventsToString() const {
+string Channel::reventsToString() const {
     return eventsToString(fd_, revents_);
 }
 
-string
-Channel::eventsToString() const {
-    return eventsToString(fd_, events_);
-}
-
+string Channel::eventsToString() const { return eventsToString(fd_, events_); }
 
 /**
- * @brief Event format: 
+ * @brief Event format:
  *  POLLIN / POLLPRI / POLLOUT / POLLHUP / POLLRDHUP / POLLERR / POLLNVAL
  */
-string
-Channel::eventsToString(int fd, int ev) {
+string Channel::eventsToString(int fd, int ev) {
     std::ostringstream oss;
     oss << fd << ": ";
-    if (ev & POLLIN)
-        oss << "IN ";
-    if (ev & POLLPRI)
-        oss << "PRI ";
-    if (ev & POLLOUT)
-        oss << "OUT ";
-    if (ev & POLLHUP)
-        oss << "HUP ";
-    if (ev & POLLRDHUP)
-        oss << "RDHUP ";
-    if (ev & POLLERR)
-        oss << "ERR ";
-    if (ev & POLLNVAL)
-        oss << "NVAL ";
+    if (ev & POLLIN) oss << "IN ";
+    if (ev & POLLPRI) oss << "PRI ";
+    if (ev & POLLOUT) oss << "OUT ";
+    if (ev & POLLHUP) oss << "HUP ";
+    if (ev & POLLRDHUP) oss << "RDHUP ";
+    if (ev & POLLERR) oss << "ERR ";
+    if (ev & POLLNVAL) oss << "NVAL ";
 
     return oss.str();
 }
