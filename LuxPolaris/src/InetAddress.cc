@@ -14,7 +14,6 @@
 
 #include <cstddef>  // offsetof
 
-#include "Endian.h"
 #include "Logger.h"
 #include "Sockets.h"
 
