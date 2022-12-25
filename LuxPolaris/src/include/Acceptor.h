@@ -4,7 +4,6 @@
  *  对于每一个事件，不管提供什么样的服务，首先需要做的事都是调用 `accept` 函数
  *  接受 TCP 连接，然后将 `socket` 文件描述符添加到 `epoll`.
  *  当这个 I/O 有事件发生时，再对此 TCP 连接提供相应的服务.
- * @version 1.0
  * @author Tian-en Lu (tianenlu957@gmail.com)
  * @date 2022-12
  */

@@ -2,7 +2,6 @@
  * @file Sockets.h
  * @brief
  *
- * @version 1.0
  * @author Tian-en Lu (tianenlu957@gmail.com)
  * @date 2022-11
  */

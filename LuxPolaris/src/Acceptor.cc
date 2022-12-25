@@ -2,7 +2,6 @@
  * @file Acceptor.cc
  * @brief
  *
- * @version 1.0
  * @author Tian-en Lu (tianenlu957@gmail.com)
  * @date 2022-12
  */
